@@ -10,6 +10,9 @@ namespace tgbotxx {
     /// More information will be provided with Exception message
     OTHER = 0,
 
+    /// In the case of interrupting Api::getUpdates long poll from Bot::stop.
+    REQUEST_CANCELED,
+
     /// The request must be repeated, but directed to a different data center.
     SEE_OTHER = cpr::status::HTTP_SEE_OTHER,
 
@@ -50,26 +53,42 @@ namespace tgbotxx {
     INTERNAL = cpr::status::HTTP_INTERNAL_SERVER_ERROR
   };
   static std::ostream& operator<<(std::ostream& os, const ErrorCode& errorCode) noexcept {
-     switch (errorCode) {
-       case ErrorCode::OTHER: return os << "OTHER";
-       case ErrorCode::SEE_OTHER: return os << "SEE_OTHER";
-       case ErrorCode::BAD_REQUEST: return os << "BAD_REQUEST";
-       case ErrorCode::UNAUTHORIZED: return os << "UNAUTHORIZED";
-       case ErrorCode::FORBIDDEN: return os << "FORBIDDEN";
-       case ErrorCode::NOT_FOUND: return os << "NOT_FOUND";
-       case ErrorCode::NOT_ACCEPTABLE: return os << "NOT_ACCEPTABLE";
-       case ErrorCode::FLOOD: return os << "FLOOD";
-       case ErrorCode::CONFLICT: return os << "CONFLICT";
-       case ErrorCode::TOO_MANY_REQUESTS: return os << "TOO_MANY_REQUESTS";
-       case ErrorCode::BAD_GATEWAY: return os << "BAD_GATEWAY";
-       case ErrorCode::INTERNAL: return os << "INTERNAL";
-       default: return os << "Unknown ErrorCode (" << static_cast<std::int32_t>(errorCode) << ')';
-     }
+    switch (errorCode) {
+      case ErrorCode::OTHER:
+        return os << "OTHER";
+      case ErrorCode::REQUEST_CANCELED:
+        return os << "REQUEST_CANCELLED";
+      case ErrorCode::SEE_OTHER:
+        return os << "SEE_OTHER";
+      case ErrorCode::BAD_REQUEST:
+        return os << "BAD_REQUEST";
+      case ErrorCode::UNAUTHORIZED:
+        return os << "UNAUTHORIZED";
+      case ErrorCode::FORBIDDEN:
+        return os << "FORBIDDEN";
+      case ErrorCode::NOT_FOUND:
+        return os << "NOT_FOUND";
+      case ErrorCode::NOT_ACCEPTABLE:
+        return os << "NOT_ACCEPTABLE";
+      case ErrorCode::FLOOD:
+        return os << "FLOOD";
+      case ErrorCode::CONFLICT:
+        return os << "CONFLICT";
+      case ErrorCode::TOO_MANY_REQUESTS:
+        return os << "TOO_MANY_REQUESTS";
+      case ErrorCode::BAD_GATEWAY:
+        return os << "BAD_GATEWAY";
+      case ErrorCode::INTERNAL:
+        return os << "INTERNAL";
+      default:
+        return os << "Unknown ErrorCode (" << static_cast<std::int32_t>(errorCode) << ')';
+    }
   }
 
   static bool isErrorCode(const std::int32_t c) noexcept {
     switch (c) {
       case static_cast<std::int32_t>(ErrorCode::OTHER):
+      case static_cast<std::int32_t>(ErrorCode::REQUEST_CANCELED):
       case static_cast<std::int32_t>(ErrorCode::SEE_OTHER):
       case static_cast<std::int32_t>(ErrorCode::BAD_REQUEST):
       case static_cast<std::int32_t>(ErrorCode::UNAUTHORIZED):
@@ -89,14 +108,14 @@ namespace tgbotxx {
 
   /// @brief tgbotxx::Exception
   class Exception : public std::runtime_error {
-      const ErrorCode m_errorCode; ///<! Telegram Api response error_code
+    const ErrorCode m_errorCode; ///<! Telegram Api response error_code
 
-    public:
-      explicit Exception(const std::string& errMessage) : std::runtime_error(errMessage), m_errorCode(ErrorCode::OTHER) {}
-      explicit Exception(const std::string& errMessage, ErrorCode errCode) : std::runtime_error(errMessage), m_errorCode(errCode) {}
+  public:
+    explicit Exception(const std::string& errMessage) : std::runtime_error(errMessage), m_errorCode(ErrorCode::OTHER) {}
+    explicit Exception(const std::string& errMessage, ErrorCode errCode) : std::runtime_error(errMessage), m_errorCode(errCode) {}
 
-      [[nodiscard]] ErrorCode errorCode() const noexcept {
-        return m_errorCode;
-      }
+    [[nodiscard]] ErrorCode errorCode() const noexcept {
+      return m_errorCode;
+    }
   };
 }

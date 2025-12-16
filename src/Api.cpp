@@ -115,7 +115,12 @@ nl::json Api::sendRequest(const std::string& endpoint, const cpr::Multipart& dat
 
   const cpr::Response res = isMultipart ? session.Post() : session.Get();
   if (res.status_code == 0) [[unlikely]] {
-    throw Exception(endpoint + ": Failed to connect to Telegram API with status code: 0. Perhaps you are not connected to the internet?", ErrorCode::OTHER);
+    // The special case for when we exit in case of Bot::stop
+    if (res.error.code == cpr::ErrorCode::ABORTED_BY_CALLBACK) {
+      throw Exception(endpoint + ": Gracefully exiting", ErrorCode::REQUEST_CANCELED);
+    } else {
+      throw Exception(endpoint + ": Failed to connect to Telegram API with status code: 0. Perhaps you are not connected to the internet?", ErrorCode::OTHER);
+    }
   }
   if (!res.text.compare(0, 6, "<html>")) [[unlikely]] {
     throw Exception(endpoint + ": Failed to get a JSON response from Telegram API. Did you enter the correct bot token?", ErrorCode::OTHER);
@@ -2595,7 +2600,7 @@ bool Api::deleteWebhook(bool dropPendingUpdates) const {
 }
 
 /// Called every LONG_POOL_TIMEOUT seconds
-std::vector<Ptr<Update>> Api::getUpdates(std::int32_t offset, std::int32_t limit, std::shared_ptr<std::atomic<bool>> running) const {
+std::vector<Ptr<Update>> Api::getUpdates(std::int32_t offset, std::int32_t limit, std::shared_ptr<std::atomic<bool>> stop) const {
   std::vector<Ptr<Update>> updates;
   const cpr::Multipart data = {
     {"offset", offset},
@@ -2603,7 +2608,7 @@ std::vector<Ptr<Update>> Api::getUpdates(std::int32_t offset, std::int32_t limit
     {"timeout", static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::seconds>(m_longPollTimeout.ms).count())},
     {"allowed_updates", nl::json(m_allowedUpdates).dump()},
   };
-  const nl::json updatesJson = sendRequest("getUpdates", data, running);
+  const nl::json updatesJson = sendRequest("getUpdates", data, stop);
   updates.reserve(updatesJson.size());
   for (const nl::json& updateObj: updatesJson) {
     Ptr<Update> update = makePtr<Update>(updateObj);
